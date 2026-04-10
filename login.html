@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CyberMonitor | User Authentication</title>
+    <!-- Preconnect for fast resource loading -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="../static/css/style.css">
+    <link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAAgY0hSTQAAeiYAAICEAAD6AAAAgOgAAHUwAADqYAAAOpgAABdwnLpRPAAAAQNJREFUOE9jZKAQMKIpEAJidSD+z4AcMB7Er8kwgGwA1BCCf0B8H4rRBZAtAvLBgAiofwaI78MoAHSxChA/gIoJA3E3VPwfiB1B/B1UoBsqxgh0uA4QD4SqsQTxzXAxFiDOBeJZQGwN4s/B2FiAAcgB/6HiFhD/YAAx1EDsC8TzoGIBIKaGKsJmANgAsgEHQXwKqrYAiC1B/A/EPEA8GIh/IIcBYxEgtoCKEQOnoLgaEHOAcB1UQTvI4I9QMQEQ7wDiA1AF41E1/wTif1AxBhDjgK6/BtV8AiqGiYm1A8S1QHwCKuaDSjCBiXUAMZg8oGo0QCyAKhjPSwAAAP//AwDT0JtFqj3UpgAAAABJRU5ErkJggg==">
+</head>
+<body class="admin-login-body">
+    <!-- Custom Cyber Cursor -->
+    <div id="cyber-cursor-dot" class="cyber-cursor-dot"></div>
+    <div id="cyber-cursor-circle" class="cyber-cursor-circle"></div>
+
+    <!-- Subdued Dynamic Background for Login -->
+    <div class="cyber-background" style="background: radial-gradient(circle at 50% 50%, #050a14 0%, #020408 100%);">
+        <div class="glow-orb orb-1"></div>
+        <div class="grid-overlay" style="opacity: 0.5;"></div>
+        <div class="cyber-lines"></div>
+    </div>
+
+    <!-- Login Container -->
+    <main class="login-wrapper">
+        <div class="glass-panel login-panel" id="login-box">
+            <div class="login-header" style="margin-bottom:20px;">
+                <i class="fa-solid fa-radar fa-spin-pulse neon-icon fa-2x"></i>
+                <h2>CYBER<span class="highlight">MONITOR</span></h2>
+                <p class="subtitle">User Access Terminal</p>
+            </div>
+            
+            <div id="login-error" class="login-error hidden">
+                <i class="fa-solid fa-triangle-exclamation"></i> <span id="auth-err-text">Invalid Credentials.</span>
+            </div>
+
+            <!-- Toggled Forms -->
+            <div id="auth-forms-container">
+                <!-- LOGIN FORM -->
+                <form id="user-login-form" class="login-form">
+                    <div class="cyber-input-group">
+                        <i class="fa-solid fa-user input-icon"></i>
+                        <input type="text" id="user-login-name" placeholder="Username" autocomplete="off" required>
+                        <div class="input-glow-line"></div>
+                    </div>
+
+                    <div class="cyber-input-group">
+                        <i class="fa-solid fa-key input-icon"></i>
+                        <input type="password" id="user-login-pass" placeholder="Password" autocomplete="off" required>
+                        <div class="input-glow-line"></div>
+                    </div>
+
+                    <button type="submit" class="cyber-btn primary-btn login-btn">
+                        <span class="btn-content">
+                            <i class="fa-solid fa-bolt"></i> CONNECT
+                        </span>
+                        <div class="btn-ripple"></div>
+                    </button>
+                    
+                    <div class="login-footer">
+                        <span>New agent? <a href="#" id="go-signup">Initialize Registration</a></span>
+                    </div>
+                </form>
+
+                <!-- SIGNUP FORM -->
+                <form id="user-signup-form" class="login-form hidden">
+                    <div class="cyber-input-group">
+                        <i class="fa-solid fa-user-plus input-icon"></i>
+                        <input type="text" id="user-signup-name" placeholder="Choose Username" autocomplete="off" required>
+                        <div class="input-glow-line"></div>
+                    </div>
+
+                    <div class="cyber-input-group">
+                        <i class="fa-solid fa-lock input-icon"></i>
+                        <input type="password" id="user-signup-pass" placeholder="Create Password" autocomplete="off" required>
+                        <div class="input-glow-line"></div>
+                    </div>
+
+                    <button type="submit" class="cyber-btn success-btn login-btn">
+                        <span class="btn-content">
+                            <i class="fa-solid fa-fingerprint"></i> CREATE PROFILE
+                        </span>
+                        <div class="btn-ripple"></div>
+                    </button>
+                    
+                    <div class="login-footer">
+                        <a href="#" id="go-login"><i class="fa-solid fa-arrow-left"></i> Return to Login</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <script src="../static/js/login.js"></script>
+</body>
+</html>

@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CyberMonitor | Smart Analysis Terminal</title>
+    <!-- Preconnect for fast resource loading -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="../static/css/style.css">
+    <!-- Dynamic Inline CSS for the new modules (appended to style.css logically) -->
+    <style>
+        .grade-badge { font-family: var(--font-heading); font-size: 3rem; font-weight: 900; line-height: 1; text-align: center; }
+        .grade-box { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 15px; background: rgba(0,0,0,0.4); border-radius: 8px; border: 1px dotted rgba(255,255,255,0.1); margin-bottom: 15px; }
+        .sec-h-item { display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.05); padding: 5px 0; font-size: 0.8rem; }
+        .sec-h-val { font-weight: 700; }
+        .sec-h-warn { color: var(--neon-red); }
+        .sec-h-ok { color: var(--neon-green); }
+        .compare-table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 0.9rem; }
+        .compare-table th { color: var(--neon-cyan); text-align: left; padding: 10px; border-bottom: 1px solid rgba(0, 234, 255, 0.2); background: rgba(0,0,0,0.4); }
+        .compare-table td { padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .best-res { box-shadow: inset 0 0 15px rgba(0, 255, 156, 0.2); border-left: 2px solid var(--neon-green); }
+        .worst-res { box-shadow: inset 0 0 15px rgba(255, 77, 77, 0.2); border-left: 2px solid var(--neon-red); }
+        
+        .animated-steps { text-align: left; margin: 15px auto; max-width: 300px; display: none; }
+        .step-item { display: flex; align-items: center; gap: 10px; font-family: var(--font-heading); font-size: 0.85rem; padding: 5px 0; color: var(--text-muted); opacity: 0.5; transition: 0.3s; }
+        .step-item.active { opacity: 1; color: var(--neon-cyan); }
+        .step-item.done { opacity: 1; color: var(--neon-green); }
+
+        .auto-monitor-panel { padding: 10px 15px; display: inline-flex; align-items: center; gap: 15px; background: rgba(0,0,0,0.5); border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); }
+        .am-btn { background: transparent; border: 1px solid rgba(255,255,255,0.2); color: var(--text-muted); padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; transition: 0.3s; }
+        .am-btn:hover { background: rgba(255,255,255,0.1); color: #fff;}
+        .am-btn.active { background: rgba(0, 234, 255, 0.2); border-color: var(--neon-cyan); color: var(--neon-cyan); }
+        .live-pulse { display: none; width: 10px; height: 10px; background: var(--neon-red); border-radius: 50%; animation: blink 1s infinite alternate; box-shadow: 0 0 8px var(--neon-red); }
+    </style>
+</head>
+<body style="display:none;">
+    <!-- Custom Cyber Cursor -->
+    <div id="cyber-cursor-dot" class="cyber-cursor-dot"></div>
+    <div id="cyber-cursor-circle" class="cyber-cursor-circle"></div>
+
+    <!-- Tech Loading Screen -->
+    <div id="system-init-loader" class="system-init-loader">
+        <div class="loader-terminal-box">
+            <div id="init-loader-text" class="init-loader-text">Initializing system...</div>
+            <span class="blink" style="color:var(--neon-cyan)">_</span>
+        </div>
+    </div>
+
+    <!-- Top Live Status Bar -->
+    <div id="top-status-bar" class="top-status-bar">
+        <span class="status-dot"></span>
+        <span id="status-text">SYSTEM ONLINE</span>
+    </div>
+
+
+    <!-- Dynamic Animated Background -->
+    <div class="cyber-background">
+        <div class="glow-orb orb-1"></div>
+        <div class="glow-orb orb-2"></div>
+        <div class="glow-orb orb-3"></div>
+        <div class="grid-overlay"></div>
+        <div class="cyber-lines"></div>
+    </div>
+
+    <!-- Navbar -->
+    <nav class="cyber-navbar">
+        <div class="nav-brand">
+            <i class="fa-solid fa-radar fa-spin-pulse neon-icon"></i>
+            <span class="brand-text">CYBER<span class="highlight">MONITOR</span></span>
+        </div>
+        <div class="nav-links" style="display:flex; align-items:center; gap:20px;">
+            <a href="#dashboard" class="nav-link active">Dashboard</a>
+            <a href="#history" class="nav-link">History Log</a>
+            <div style="width: 1px; height: 20px; background: rgba(255,255,255,0.2); margin: 0 10px;"></div>
+            <span id="nav-user-display" style="color:var(--neon-green); font-family:var(--font-heading); font-size:0.8rem;">Agent</span>
+            <button id="btn-user-logout" class="cyber-btn danger-btn sm-btn" style="padding:4px 10px;font-size:0.7rem;"><i class="fa-solid fa-power-off"></i> LOGOFF</button>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <main class="container">
+        <!-- Hero Section -->
+        <header class="hero-section">
+            <h1 class="glitch-text" data-text="SYSTEM INTELLIGENCE">SYSTEM INTELLIGENCE</h1>
+            <p class="subtitle">Advanced Neural Network URL Monitoring & Health Analysis</p>
+        </header>
+
+        <!-- Analytics Mini Panel -->
+        <section class="mini-analytics" style="display:grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 25px;">
+            <div class="stat-card">
+                <div class="stat-icon cyan-glow"><i class="fa-solid fa-globe"></i></div>
+                <div class="stat-info">
+                    <span class="stat-label">Total Checks</span>
+                    <span class="stat-value" id="stat-total">0</span>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon green-glow"><i class="fa-solid fa-check-circle"></i></div>
+                <div class="stat-info">
+                    <span class="stat-label">Active Sites</span>
+                    <span class="stat-value" id="stat-healthy" style="color:var(--neon-green);">0</span>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon red-glow"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                <div class="stat-info">
+                    <span class="stat-label">Down Sites</span>
+                    <span class="stat-value" id="stat-critical" style="color:var(--neon-red);">0</span>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon" style="text-shadow: 0 0 10px var(--neon-cyan); color: #fff;"><i class="fa-solid fa-gauge-high"></i></div>
+                <div class="stat-info">
+                    <span class="stat-label">Avg. Latency</span>
+                    <span class="stat-value" id="stat-speed" style="font-family:monospace; font-size:1.2rem;">0ms</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Dynamic Watchlist / Favorites -->
+        <section class="watchlist-panel glass-panel" style="margin-bottom: 30px; padding: 20px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:10px; margin-bottom:15px;">
+                <h3 style="margin:0; font-size:1rem; color:var(--neon-yellow); font-family:'Orbitron',sans-serif;"><i class="fa-solid fa-star"></i> WATCHLIST DIRECTIVES</h3>
+                <span class="badge" style="background:rgba(255,204,0,0.1); color:var(--neon-yellow); border:1px solid var(--neon-yellow);" id="fav-count">0 SAVED</span>
+            </div>
+            <div id="watchlist-container" style="display:flex; gap:15px; overflow-x:auto; padding-bottom:10px;">
+                <div style="color:var(--text-muted); font-size:0.85rem; font-style:italic;">No priority targets starred. Run a scan to add targets to the watchlist.</div>
+            </div>
+        </section>
+
+        <!-- WAZUH Intelligence SOC Dashboard -->
+        <section class="wazuh-soc-panel glass-panel" style="margin-bottom: 30px; padding: 20px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:12px; margin-bottom:18px; flex-wrap:wrap; gap:10px;">
+                <h3 style="margin:0; font-size:1.1rem; color:var(--neon-green); font-family:'Orbitron',sans-serif; text-shadow: 0 0 10px var(--neon-green); display:flex; align-items:center; gap:8px;">
+                    <i class="fa-solid fa-shield-halved"></i> THREAT INTELLIGENCE
+                    <span style="font-size:0.6rem; background:rgba(0,255,156,0.1); border:1px solid rgba(0,255,156,0.3); padding:2px 8px; border-radius:10px; color:var(--neon-green); letter-spacing:1px;">● LIVE</span>
+                </h3>
+                <div style="display:flex; gap:10px;">
+                    <span class="badge" style="background:rgba(255,77,77,0.1); color:var(--neon-red); border:1px solid var(--neon-red);" id="wazuh-critical-count">0 CRITICAL</span>
+                    <span class="badge" style="background:rgba(255,204,0,0.1); color:var(--neon-yellow); border:1px solid var(--neon-yellow);" id="wazuh-warning-count">0 WARNINGS</span>
+                </div>
+            </div>
+            <div style="display:grid; grid-template-columns: 1.6fr 1fr; gap: 20px;">
+                <!-- Real-time Chart -->
+                <div style="background:rgba(0,0,0,0.35); border:1px solid rgba(0, 234, 255, 0.12); border-radius:10px; padding:15px; display:flex; flex-direction:column;">
+                    <h4 style="color:var(--neon-cyan); font-size:0.82rem; margin-bottom:12px; display:flex; align-items:center; gap:6px;">
+                        <i class="fa-solid fa-chart-line"></i> LIVE SCAN &amp; THREAT ACTIVITY
+                    </h4>
+                    <div style="flex:1; min-height:220px; position:relative;">
+                        <canvas id="wazuhActivityChart" style="position:absolute;top:0;left:0;width:100%;height:100%;"></canvas>
+                    </div>
+                </div>
+
+                <!-- Threat Alert Feed -->
+                <div style="background:rgba(0,0,0,0.35); border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:15px; display:flex; flex-direction:column;">
+                    <h4 style="color:#fff; font-size:0.82rem; margin-bottom:12px; display:flex; align-items:center; justify-content:space-between;">
+                        <span><i class="fa-solid fa-bell"></i> SECURITY ALERTS</span>
+                    </h4>
+                    <div id="wazuh-alerts-container" class="custom-scrollbar" style="flex:1; overflow-y:auto; max-height:220px; display:flex; flex-direction:column; gap:7px; padding-right:4px;">
+                        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;min-height:180px;gap:10px;opacity:0.6;">
+                            <div style="font-size:2rem;">🛡️</div>
+                            <div style="color:var(--neon-green);font-family:var(--font-heading);font-size:0.8rem;letter-spacing:1px;">ALL SYSTEMS NOMINAL</div>
+                            <div style="color:var(--text-muted);font-size:0.72rem;text-align:center;">No active threats.<br>Scan a URL to monitor.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Input Section -->
+        <section class="input-panel glass-panel" id="dashboard">
+            <div class="panel-header">
+                <h2><i class="fa-solid fa-terminal"></i> INITIATE SCAN SEQUENCE</h2>
+                <div class="scan-modes">
+                    <button class="mode-btn active" data-mode="single">Single Target</button>
+                    <button class="mode-btn" data-mode="bulk">Mass Scan</button>
+                    <button class="mode-btn" data-mode="compare">Compare Mode</button>
+                </div>
+            </div>
+            
+            <div class="input-body">
+                <!-- Single Check UI -->
+                <div id="single-mode" class="mode-content active">
+                    <div class="cyber-input-group">
+                        <i class="fa-solid fa-link input-icon"></i>
+                        <input type="text" id="url-input" placeholder="Enter target URL (e.g., example.com)" autocomplete="off">
+                        <div class="input-glow-line"></div>
+                    </div>
+                    
+                    <!-- Auto Monitoring Toggle (Single Mode Only) -->
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
+                        <button id="btn-check" class="cyber-btn primary-btn">
+                            <span class="btn-content"><i class="fa-solid fa-bolt"></i> ENGAGE SCAN</span>
+                            <div class="btn-ripple"></div>
+                        </button>
+                        
+                        <div class="auto-monitor-panel">
+                            <div class="live-pulse" id="live-pulse-icon"></div>
+                            <span style="font-size:0.8rem; color:var(--text-muted); font-family:var(--font-heading);">AUTO-MONITOR:</span>
+                            <button class="am-btn" data-sec="10">10s</button>
+                            <button class="am-btn" data-sec="30">30s</button>
+                            <button class="am-btn" data-sec="60">60s</button>
+                            <button class="am-btn danger-btn hidden" id="am-stop-btn" style="padding:4px 10px;"><i class="fa-solid fa-stop"></i> HALT</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bulk Check UI -->
+                <div id="bulk-mode" class="mode-content">
+                    <div class="cyber-input-group textarea-group">
+                        <i class="fa-solid fa-list-ul input-icon"></i>
+                        <textarea id="bulk-url-input" placeholder="Enter multiple valid URLs (one per line)&#10;example.com&#10;google.com" rows="4"></textarea>
+                        <div class="input-glow-line"></div>
+                    </div>
+                    <button id="btn-bulk-check" class="cyber-btn warning-btn">
+                        <span class="btn-content"><i class="fa-solid fa-rocket"></i> LAUNCH MASS SCAN</span>
+                        <div class="btn-ripple"></div>
+                    </button>
+                </div>
+
+                <!-- Compare Mode UI -->
+                <div id="compare-mode" class="mode-content">
+                    <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:15px;">Input identical targets to evaluate latency & routing discrepancies, or gauge competing infrastructures.</p>
+                    <div class="cyber-input-group">
+                        <i class="fa-solid fa-globe input-icon"></i>
+                        <input type="text" id="cmp-url-1" placeholder="Target Alpha (e.g., origin.net)" autocomplete="off">
+                    </div>
+                    <div class="cyber-input-group">
+                        <i class="fa-solid fa-globe input-icon"></i>
+                        <input type="text" id="cmp-url-2" placeholder="Target Beta (e.g., node2.net)" autocomplete="off">
+                    </div>
+                    <div class="cyber-input-group">
+                        <i class="fa-solid fa-globe input-icon"></i>
+                        <input type="text" id="cmp-url-3" placeholder="Target Gamma (Optional)" autocomplete="off">
+                    </div>
+                    
+                    <button id="btn-compare-check" class="cyber-btn action-btn">
+                        <span class="btn-content"><i class="fa-solid fa-code-compare"></i> INITIATE CROSS-COMPARE</span>
+                        <div class="btn-ripple"></div>
+                    </button>
+                </div>
+
+            </div>
+
+            <!-- Scan Loader/Terminal -->
+            <div id="scan-loader" class="hidden" style="text-align:center; padding: 40px 20px;">
+                <div style="display:inline-block; position:relative; margin-bottom: 25px;">
+                    <i class="fa-solid fa-radar fa-spin fa-3x" style="color:var(--neon-cyan); opacity: 0.8;" id="cyber-radar"></i>
+                    <div style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-family:monospace; font-weight:bold; color:#fff; font-size:1.2rem;" id="scan-percent">0%</div>
+                </div>
+                
+                <div id="terminal-text" style="font-family:monospace; color:var(--neon-cyan); font-size:1.1rem; min-height:24px; text-transform:uppercase; letter-spacing:1px; margin-bottom: 10px;">Initializing Scan Protocol...</div>
+                
+                <div class="progress-bar-container" style="margin:20px auto; width: 100%; max-width: 600px; background:rgba(0,0,0,0.5); border:1px solid rgba(0, 234, 255, 0.2); border-radius:4px; height:20px; position:relative; overflow:hidden;">
+                    <div id="scan-prg-fill" class="progress-fill" style="width:0%; height:100%; background:repeating-linear-gradient(45deg, var(--neon-cyan), var(--neon-cyan) 10px, transparent 10px, transparent 20px); opacity:0.8; box-shadow:0 0 15px var(--neon-cyan-glow);"></div>
+                    <div id="prg-bar-labels" style="position:absolute; top:0; left:0; width:100%; height:100%; display:flex; font-size:0.65rem; color:rgba(255,255,255,0.4); pointer-events:none; padding: 0 10px; align-items:center;">
+                        <span style="flex:1;">RESOLVING</span>
+                        <span style="flex:1;">SCANNING</span>
+                        <span style="flex:1;">ANALYZING</span>
+                        <span style="flex:1;">FINALIZING</span>
+                    </div>
+                </div>
+                <div style="font-family:monospace; font-size:0.8rem; color:var(--text-muted);">[ <span id="scan-block-display">□□□□□□□□□□</span> ]</div>
+            </div>
+        </section>
+
+        <!-- Compare Output Container -->
+        <section id="compare-container" class="glass-panel hidden" style="padding: 25px; margin-bottom: 40px; overflow-x: auto;">
+            <h3 style="border-bottom: 1px solid rgba(0,234,255,0.2); padding-bottom: 15px; margin-bottom: 15px; display:flex; gap:10px;"><i class="fa-solid fa-code-compare" style="color:var(--neon-cyan)"></i> COMPARATIVE ANALYSIS</h3>
+            <!-- Compare table populated by JS -->
+            <div id="compare-table-wrapper"></div>
+        </section>
+
+        <!-- Results Section Container -->
+        <section id="results-container" class="results-grid"></section>
+
+        <!-- History Dashboard -->
+        <section class="history-panel glass-panel" id="history">
+            <div class="panel-header" style="flex-wrap:wrap; gap:15px;">
+                <h2><i class="fa-solid fa-server"></i> SYSTEM LOGS</h2>
+                <div class="history-actions" style="display:flex; flex-wrap:wrap; gap:10px; align-items:center;">
+                    <!-- Filters -->
+                    <select id="hist-filter-status" style="background:rgba(0,0,0,0.5); border:1px solid rgba(255,255,255,0.1); color:#fff; padding:5px 10px; border-radius:4px; font-family:var(--font-heading); font-size:0.8rem;">
+                        <option value="ALL">Status: ALL</option>
+                        <option value="UP">UP</option>
+                        <option value="DOWN">DOWN</option>
+                    </select>
+                    <select id="hist-filter-speed" style="background:rgba(0,0,0,0.5); border:1px solid rgba(255,255,255,0.1); color:#fff; padding:5px 10px; border-radius:4px; font-family:var(--font-heading); font-size:0.8rem;">
+                        <option value="ALL">Speed: ALL</option>
+                        <option value="FAST">FAST</option>
+                        <option value="SLOW">SLOW</option>
+                    </select>
+                    
+                    <button id="btn-refresh-history" class="cyber-btn sm-btn"><i class="fa-solid fa-rotate"></i> REFRESH</button>
+                    <button id="btn-clear-history" class="cyber-btn sm-btn danger-btn"><i class="fa-solid fa-trash"></i></button>
+                    <button id="btn-export-csv" class="cyber-btn sm-btn success-btn"><i class="fa-solid fa-file-csv"></i> CSV</button>
+                </div>
+            </div>
+            <div class="table-container">
+                <table class="cyber-table">
+                    <thead>
+                        <tr>
+                            <th>TARGET URL</th>
+                            <th>STATUS</th>
+                            <th>CODE</th>
+                            <th>SPEED</th>
+                            <th>SECURE</th>
+                            <th>TIMESTAMP</th>
+                        </tr>
+                    </thead>
+                    <tbody id="history-table-body">
+                        <!-- Populated by JS -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <!-- Template for Result Card -->
+    <template id="result-card-template">
+        <div class="result-card glass-card">
+            <div class="card-glow-bg"></div>
+            
+            <div class="card-header" style="display:flex; flex-direction:column; gap:15px; padding-bottom:15px; margin-bottom:15px; border-bottom:1px solid rgba(255,255,255,0.05);">
+                <div class="card-header-main" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:15px;">
+                    <div class="target-info" style="display:flex; flex-direction:column; max-width:100%;">
+                        <div class="target-url" title="" style="font-family:var(--font-heading); font-size:1.4rem; color:#fff; word-break:break-all;">
+                            <i class="fa-solid fa-globe" style="color:var(--neon-cyan); margin-right:5px;"></i> <span class="url-text"></span>
+                        </div>
+                        <div class="last-check" style="font-size:0.75rem; color:var(--text-muted); font-family:monospace; margin-top:5px;"></div>
+                    </div>
+                    <div class="status-badge animated-glow" style="padding:6px 14px; border-radius:6px; font-weight:700; font-family:'Orbitron', sans-serif; letter-spacing:1px; font-size:0.9rem; border:1px solid transparent; display:inline-flex; align-items:center; justify-content:center; transition:all 0.3s ease;"></div>
+                </div>
+
+                <!-- Action Toolbar -->
+                <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                    <button class="cyber-btn sm-btn action-btn btn-recheck"><i class="fa-solid fa-rotate-right"></i> RECHECK NOW</button>
+                    <button class="cyber-btn sm-btn btn-favorite" style="border-color:var(--neon-yellow); color:var(--neon-yellow);"><i class="fa-solid fa-star"></i> FAVORITE</button>
+                    <button class="cyber-btn sm-btn primary-btn btn-download-txt"><i class="fa-solid fa-file-lines"></i> TXT REPORT</button>
+                </div>
+            </div>
+
+            <div class="card-metrics-grid">
+                <!-- Left: Performance, Summary, Recon -->
+                <div style="display:flex; flex-direction:column; gap:15px; flex: 1.5;">
+                    
+                    <!-- Top Left row: Summary Card & Grades -->
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px;">
+                        
+                        <!-- Quick Scan Summary Card -->
+                        <div class="metric-box bg-dark" style="border:1px solid rgba(0, 234, 255, 0.2);">
+                            <h4 style="color:var(--neon-cyan); margin-bottom:10px; border-bottom:1px solid rgba(0,234,255,0.2);"><i class="fa-solid fa-list-check"></i> SCAN SUMMARY</h4>
+                            <div style="display:flex; flex-direction:column; gap:8px; font-family:monospace; font-size:0.85rem;">
+                                <div><span style="color:var(--text-muted)">Status:</span> <span class="sum-status" style="float:right; font-weight:bold;"></span></div>
+                                <div><span style="color:var(--text-muted)">Speed:</span> <span class="sum-speed" style="float:right; font-weight:bold;"></span></div>
+                                <div><span style="color:var(--text-muted)">Security:</span> <span class="sum-security" style="float:right; font-weight:bold;"></span></div>
+                                <div><span style="color:var(--text-muted)">Grade:</span> <span class="sum-grade" style="float:right; font-weight:bold;"></span></div>
+                            </div>
+                        </div>
+
+                        <!-- Circular Health Score -->
+                        <div class="metric-box health-score-box">
+                            <h4>SECURITY SCORE</h4>
+                            <div class="circular-progress">
+                                <svg viewBox="0 0 100 100">
+                                    <circle class="bg-circle" cx="50" cy="50" r="40"></circle>
+                                    <circle class="progress-circle" cx="50" cy="50" r="40"></circle>
+                                </svg>
+                                <div class="score-value">
+                                    <span class="number" id="sec-score-num">0</span><span class="percent"></span>
+                                    <div class="score-label" style="font-size:0.6rem;" id="risk-class-label">ANALYZING</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Reconnaissance Info (Subdomains, Ports, APIs, IP/Location) -->
+                    <div class="metric-box recon-box" style="text-align:left;">
+                        <h4><i class="fa-solid fa-satellite-dish"></i> RECONNAISSANCE SCAN</h4>
+                        
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-top:10px;">
+                            <!-- Network Identity -->
+                            <div>
+                                <span style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase;">Network Identity</span>
+                                <div style="font-family:monospace; font-size:0.8rem; margin-top:5px; line-height:1.5;">
+                                    <div><span style="color:#a0aec0">IPv4:</span> <span class="recon-ip" style="color:var(--neon-cyan)">...</span></div>
+                                    <div><span style="color:#a0aec0">Location:</span> <span class="recon-loc" style="color:#fff">...</span></div>
+                                    <div><span style="color:#a0aec0">Provider:</span> <span class="recon-prov" style="color:#fff">...</span></div>
+                                </div>
+                            </div>
+
+                            <!-- APIs -->
+                            <div>
+                                <span style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase;">API Endpoints</span>
+                                <div class="recon-apis" style="font-family:monospace; font-size:0.85rem; color:var(--neon-green); margin-top:5px; line-height:1.5;"></div>
+                            </div>
+                        </div>
+
+                        <!-- Subdomains -->
+                        <div style="margin-top:15px; padding-top:15px; border-top:1px solid rgba(255,255,255,0.05);">
+                            <span style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase;">Discovered Subdomains</span>
+                            <div class="recon-subdomains" style="display:flex; flex-wrap:wrap; gap:10px; font-family:monospace; font-size:0.8rem; margin-top:5px;"></div>
+                        </div>
+
+                        <!-- Ports Array -->
+                        <div style="margin-top:15px; padding-top:15px; border-top:1px solid rgba(255,255,255,0.05);">
+                            <span style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase;">Port Exposure Scan</span>
+                            <div class="recon-ports" style="display:flex; gap:10px; margin-top:5px; flex-wrap:wrap; font-family:monospace; font-size:0.8rem;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right: Analysis & HTTP -->
+                <div style="display:flex; flex-direction:column; gap:15px; flex: 1;">
+                    <!-- HTTP Status -->
+                    <div class="metric-box http-box">
+                        <div style="display:flex; justify-content:space-between;">
+                            <h4>HTTP RESPONSE</h4>
+                            <span class="code-number" style="font-weight:900;">---</span>
+                        </div>
+                        <div class="http-explanation" style="font-style:italic; font-size:0.8rem; padding-top:5px; color:var(--neon-orange);">Initializing...</div>
+                        
+                        <!-- Mini Latency Bar -->
+                        <div style="margin-top:15px; display:flex; justify-content:space-between; font-size:0.8rem; font-family:monospace;">
+                            <span style="color:var(--text-muted);">LATENCY</span>
+                            <span><span class="speed-value" style="color:#fff;">-- ms</span> <span class="speed-level badge" style="padding:2px 5px; font-size:0.6rem;"></span></span>
+                        </div>
+                        <div style="width:100%; height:4px; background:rgba(255,255,255,0.1); margin-top:5px; position:relative;">
+                            <div class="speed-fill" style="width:0%; height:100%; background:var(--neon-cyan);"></div>
+                            <div class="speed-marker" style="position:absolute; top:0; bottom:0; width:2px; background:#fff; left:0%;"></div>
+                        </div>
+                    </div>
+
+                    <!-- Modern Security Score Breakdown -->
+                    <div class="analysis-panel" style="padding:15px;">
+                        <h4 style="border-bottom:1px solid rgba(0,255,156,0.2); padding-bottom:5px; margin-bottom:10px; font-size:0.8rem;"><i class="fa-solid fa-shield"></i> SECURITY SCORE BREAKDOWN</h4>
+                        
+                        <div class="sec-h-item sh-https">
+                            <span>SSL/TLS Connection</span>
+                            <span class="sec-h-val sec-h-warn"><i class="fa-solid fa-xmark"></i> Insecure</span>
+                        </div>
+                        <div class="sec-h-item sh-csp">
+                            <span>Content-Security-Policy</span>
+                            <span class="sec-h-val sec-h-warn"><i class="fa-solid fa-xmark"></i> Missing</span>
+                        </div>
+                        <div class="sec-h-item sh-hsts">
+                            <span>Strict-Transport-Security</span>
+                            <span class="sec-h-val sec-h-warn"><i class="fa-solid fa-xmark"></i> Missing</span>
+                        </div>
+                        <div class="sec-h-item sh-xfo">
+                            <span>X-Frame-Options</span>
+                            <span class="sec-h-val sec-h-warn"><i class="fa-solid fa-xmark"></i> Missing</span>
+                        </div>
+                        <div class="sec-h-item sh-api">
+                            <span>Backend API Risk Exposure</span>
+                            <span class="sec-h-val sec-h-warn"><i class="fa-solid fa-triangle-exclamation"></i> Analyzing</span>
+                        </div>
+                        <div class="sec-h-item sh-ports">
+                            <span>Service Ports Vulnerability</span>
+                            <span class="sec-h-val sec-h-warn"><i class="fa-solid fa-triangle-exclamation"></i> Analyzing</span>
+                        </div>
+                        
+                        <ul class="header-implications" style="font-size:0.75rem; color:var(--text-muted); margin:10px 0 0; padding-left:15px; border-top:1px dashed rgba(255,255,255,0.05); padding-top:10px;"></ul>
+                    </div>
+
+                    <!-- AI Analysis Panel -->
+                    <div class="analysis-panel" style="padding:15px; flex:1;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(0,234,255,0.2); padding-bottom:8px; margin-bottom:10px;">
+                            <h4 style="margin:0;"><i class="fa-solid fa-microchip"></i> SYSTEM ANALYSIS</h4>
+                            <span class="badge risk-badge" style="font-size:0.6rem;">Computing Risk</span>
+                        </div>
+                        <ul class="basic-reasons" style="margin:0 0 10px 0; padding-left:15px; font-size:0.8rem; color:var(--neon-green)"></ul>
+                        <ul class="rec-list" style="margin:0; padding-left:15px; font-size:0.8rem; color:#a0aec0;"></ul>
+                    </div>
+
+                </div>
+            </div>
+            
+            <!-- Redirect Info (Hidden if no redirects) -->
+            <div class="redirect-panel hidden" style="margin-top:15px; background:rgba(255,204,0,0.1); border:1px solid var(--neon-yellow); padding:10px; border-radius:8px;">
+                <h4 style="margin:0 0 5px; font-size:0.8rem;"><i class="fa-solid fa-route"></i> ROUTING PATH</h4>
+                <div class="redirect-path" style="font-family:monospace; font-size:0.85rem;">
+                    <span class="og-url" style="color:var(--text-muted)"></span>
+                    <i class="fa-solid fa-arrow-right-long blink"></i>
+                    <span class="fi-url" style="color:var(--neon-green)"></span>
+                    <span class="redirect-count badge" style="float:right;"></span>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <!-- Notification Toast Container -->
+    <div id="toast-container"></div>
+
+    <script src="../static/js/script.js"></script>
+    <script src="../static/js/soc-patches.js"></script>
+    <script src="../static/js/wazuh-dashboard.js"></script>
+</body>
+</html>

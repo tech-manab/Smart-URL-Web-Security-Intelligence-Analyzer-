@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CyberMonitor | Admin Command Center</title>
+    <!-- Preconnect for fast resource loading -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="../static/css/style.css">
+    <style>
+        :root {
+            --font-sub: 'Poppins', sans-serif;
+            --bg-admin: #0a0f1c;
+        }
+        body.admin-body {
+            font-family: var(--font-sub);
+            background-color: var(--bg-admin);
+            color: #fff;
+            margin: 0; padding: 0;
+            display: flex; height: 100vh;
+            overflow: hidden;
+        }
+        .admin-sidebar {
+            width: 260px;
+            background: rgba(10, 15, 28, 0.95);
+            border-right: 1px solid rgba(0, 234, 255, 0.2);
+            display: flex; flex-direction: column;
+            padding: 20px 0; z-index: 10;
+        }
+        .sidebar-header {
+            text-align: center; margin-bottom: 30px;
+            font-family: 'Orbitron', sans-serif;
+        }
+        .sidebar-header h2 { margin: 10px 0 0; font-size: 1.5rem; color: #fff; }
+        .sidebar-header .highlight { color: var(--neon-cyan); }
+        .sidebar-link {
+            padding: 15px 25px;
+            color: #a0aec0; text-decoration: none;
+            display: flex; align-items: center; gap: 15px;
+            font-size: 1rem; transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .sidebar-link:hover, .sidebar-link.active {
+            background: rgba(0, 234, 255, 0.1);
+            color: var(--neon-cyan);
+            border-right: 3px solid var(--neon-cyan);
+        }
+        .sidebar-footer { margin-top: auto; padding: 0 20px; }
+        
+        .admin-main {
+            flex: 1; display: flex; flex-direction: column;
+            background: radial-gradient(circle at 50% 10%, #111827 0%, #0a0f1c 100%);
+            overflow-y: auto; padding: 30px;
+        }
+        .admin-topbar {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 30px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px;
+        }
+        .admin-topbar h1 { font-family: 'Orbitron', sans-serif; margin: 0; font-size: 1.8rem; color: var(--neon-cyan); }
+        
+        .admin-section { display: none; animation: fadeIn 0.4s ease forwards; }
+        .admin-section.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Cards */
+        .overview-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .overview-card {
+            background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 12px; padding: 20px; display: flex; align-items: center; gap: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3); transition: transform 0.3s, box-shadow 0.3s;
+        }
+        .overview-card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.5); border-color: rgba(0,234,255,0.3); }
+        .overview-card i { font-size: 2.5rem; }
+        .overview-card h3 { margin: 0; font-size: 0.9rem; color: #a0aec0; font-weight: 500; }
+        .overview-card .big-number { font-size: 2.2rem; font-weight: 700; font-family: 'Orbitron', sans-serif; margin-top: 5px; display: block; }
+
+        .glass-panel { background: rgba(0,0,0,0.4); backdrop-filter: blur(10px); border-radius: 12px; border: 1px solid rgba(255,255,255,0.08); padding: 25px; margin-bottom: 25px; }
+        .panel-heading { font-family: 'Orbitron', sans-serif; font-size: 1.2rem; margin-top: 0; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; color: var(--neon-cyan); border-bottom: 1px solid rgba(0,234,255,0.2); padding-bottom: 10px; }
+
+        /* Table */
+        table.cyber-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+        table.cyber-table th { text-align: left; padding: 12px; color: #a0aec0; border-bottom: 1px solid rgba(255,255,255,0.1); font-weight: 500; text-transform: uppercase; letter-spacing: 1px; }
+        table.cyber-table td { padding: 15px 12px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        table.cyber-table tr:hover { background: rgba(255,255,255,0.02); }
+
+        /* Security Bar */
+        .sec-stat-item { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; font-size: 1.1rem; }
+        .badge { padding: 5px 10px; border-radius: 6px; font-weight: 600; font-size: 0.9rem; }
+
+        /* Alert Item */
+        .alert-item { display: flex; align-items: center; justify-content: space-between; padding: 15px; background: rgba(255,77,77,0.1); border-left: 4px solid var(--neon-red); margin-bottom: 10px; border-radius: 4px; }
+        .alert-item.warning { background: rgba(255,204,0,0.1); border-left-color: var(--neon-yellow); }
+    </style>
+</head>
+<body class="admin-body" style="display:none;">
+    <!-- Custom Cyber Cursor -->
+    <div id="cyber-cursor-dot" class="cyber-cursor-dot"></div>
+    <div id="cyber-cursor-circle" class="cyber-cursor-circle"></div>
+
+    <!-- Subdued Dynamic Background -->
+    <div class="cyber-background" style="position: absolute; width: 100%; height: 100%; z-index: -1;">
+        <div class="grid-overlay" style="opacity: 0.2;"></div>
+        <div class="cyber-lines"></div>
+    </div>
+
+    <!-- Sidebar Navigation -->
+    <aside class="admin-sidebar">
+        <div class="sidebar-header">
+            <i class="fa-solid fa-server neon-icon fa-2x"></i>
+            <h2>ADMIN<span class="highlight">OS</span></h2>
+        </div>
+
+        <nav class="sidebar-nav">
+            <a class="sidebar-link active" data-section="dashboard"><i class="fa-solid fa-gauge-high"></i> Dashboard</a>
+            <a class="sidebar-link" data-section="users"><i class="fa-solid fa-users"></i> Users</a>
+            <a class="sidebar-link" data-section="activity"><i class="fa-solid fa-list-check"></i> Activity</a>
+            <a class="sidebar-link" data-section="analytics"><i class="fa-solid fa-chart-line"></i> Analytics</a>
+            <a class="sidebar-link" data-section="security"><i class="fa-solid fa-shield-halved"></i> Security</a>
+            <a class="sidebar-link" data-section="alerts"><i class="fa-solid fa-bell"></i> Alerts</a>
+            <a class="sidebar-link" data-section="system"><i class="fa-solid fa-cogs"></i> System Controls</a>
+        </nav>
+
+        <div class="sidebar-footer">
+            <button id="btn-admin-logout" class="cyber-btn danger-btn sm-btn" style="width: 100%; justify-content: center;">
+                <i class="fa-solid fa-power-off"></i> LOGOUT
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="admin-main">
+        <header class="admin-topbar">
+            <h1 id="current-section-title">DASHBOARD OVERVIEW</h1>
+            <div style="display:flex; gap: 20px; align-items: center;">
+                <span id="admin-display-name" style="color:#a0aec0; font-weight:500;">Admin</span>
+                <div class="status-badge" style="border-color:var(--neon-green); color:var(--neon-green);">SYSTEM ACTIVE</div>
+            </div>
+        </header>
+
+        <!-- 1. Dashboard Section -->
+        <section id="section-dashboard" class="admin-section active">
+            <div class="overview-grid">
+                <div class="overview-card">
+                    <i class="fa-solid fa-users" style="color: var(--neon-cyan);"></i>
+                    <div>
+                        <h3>Total Users</h3>
+                        <span class="big-number" id="dash-users">0</span>
+                    </div>
+                </div>
+                <div class="overview-card">
+                    <i class="fa-solid fa-link" style="color: var(--neon-cyan);"></i>
+                    <div>
+                        <h3>URLs Checked</h3>
+                        <span class="big-number" id="dash-scans">0</span>
+                    </div>
+                </div>
+                <div class="overview-card">
+                    <i class="fa-solid fa-arrow-up-right-dots" style="color: var(--neon-green);"></i>
+                    <div>
+                        <h3>Active (UP)</h3>
+                        <span class="big-number" id="dash-up" style="color: var(--neon-green);">0</span>
+                    </div>
+                </div>
+                <div class="overview-card">
+                    <i class="fa-solid fa-arrow-down-right-dots" style="color: var(--neon-red);"></i>
+                    <div>
+                        <h3>Down Websites</h3>
+                        <span class="big-number" id="dash-down" style="color: var(--neon-red);">0</span>
+                    </div>
+                </div>
+                <div class="overview-card">
+                    <i class="fa-solid fa-bolt" style="color: var(--neon-yellow);"></i>
+                    <div>
+                        <h3>Avg Latency</h3>
+                        <span class="big-number"><span id="dash-latency">0</span><span style="font-size:1rem;color:#a0aec0">ms</span></span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. Users Section -->
+        <section id="section-users" class="admin-section">
+            <div class="glass-panel">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                    <h3 class="panel-heading" style="margin:0;"><i class="fa-solid fa-users-gear"></i> USER MANAGEMENT</h3>
+                    <button class="cyber-btn sm-btn success-btn" id="btn-add-dummy"><i class="fa-solid fa-plus"></i> Mock User</button>
+                </div>
+                <table class="cyber-table">
+                    <thead>
+                        <tr>
+                            <th>USERNAME / EMAIL</th>
+                            <th>TOTAL SCANS / SESSION TIME</th>
+                            <th>STATUS (LIVE / BLOCKED)</th>
+                            <th>ACTIONS</th>
+                        </tr>
+                    </thead>
+                    <tbody id="user-mgmt-tbody">
+                        <!-- Populated by admin.js -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- 3. Activity Section -->
+        <section id="section-activity" class="admin-section">
+            <div class="glass-panel">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                    <h3 class="panel-heading" style="margin:0;"><i class="fa-solid fa-satellite-dish"></i> ACTIVITY MONITOR</h3>
+                    <button class="cyber-btn sm-btn danger-btn" id="btn-clear-logs"><i class="fa-solid fa-trash"></i> PURGE</button>
+                </div>
+                <table class="cyber-table">
+                    <thead>
+                        <tr>
+                            <th>TARGET URL</th>
+                            <th>STATUS</th>
+                            <th>SECURITY</th>
+                            <th>SPEED</th>
+                            <th>TIME</th>
+                            <th>ACTIONS</th>
+                        </tr>
+                    </thead>
+                    <tbody id="activity-tbody">
+                        <!-- Populated by admin.js -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- 4. Analytics Section -->
+        <section id="section-analytics" class="admin-section">
+            <div class="glass-panel">
+                <h3 class="panel-heading"><i class="fa-solid fa-chart-pie"></i> ANALYTICS CHARTS</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
+                    <div>
+                        <h4 style="color:#a0aec0; font-weight:500; margin-bottom:15px;">Total Scans Over Time</h4>
+                        <div class="bar-chart-container" id="chart-volume" style="background:rgba(0,0,0,0.3); padding:15px; border-radius:8px;"></div>
+                    </div>
+                    <div>
+                        <h4 style="color:#a0aec0; font-weight:500; margin-bottom:15px;">Success vs Failure Ratio</h4>
+                        <div class="bar-chart-container" id="chart-success" style="background:rgba(0,0,0,0.3); padding:15px; border-radius:8px;"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 5. Security Section -->
+        <section id="section-security" class="admin-section">
+            <div class="glass-panel" style="max-width: 600px;">
+                <h3 class="panel-heading"><i class="fa-solid fa-lock"></i> SECURITY OVERVIEW</h3>
+                
+                <div class="sec-stat-item">
+                    <span><i class="fa-solid fa-lock" style="color:var(--neon-green)"></i> Secure Sites (HTTPS)</span>
+                    <span class="badge" style="background:var(--neon-green); color:#000;" id="sec-https-count">0</span>
+                </div>
+                <div class="sec-stat-item">
+                    <span><i class="fa-solid fa-lock-open" style="color:var(--neon-orange)"></i> Insecure Sites (HTTP)</span>
+                    <span class="badge" style="background:var(--neon-orange); color:#000;" id="sec-http-count">0</span>
+                </div>
+                <div class="sec-stat-item">
+                    <span><i class="fa-solid fa-triangle-exclamation" style="color:var(--neon-red)"></i> Risky Websites</span>
+                    <span class="badge" style="background:var(--neon-red); color:#fff;" id="sec-risk-count">0</span>
+                </div>
+
+                <div style="margin-top: 30px;">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:8px; font-size:0.9rem; color:#a0aec0;">
+                        <span>System Security Health</span>
+                        <span id="sec-health-pct">100%</span>
+                    </div>
+                    <div style="height: 12px; background: rgba(0,0,0,0.5); border-radius: 6px; overflow:hidden;">
+                        <div id="sec-health-bar" style="height: 100%; background: var(--neon-green); width: 100%; transition: width 0.5s;"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 6. Alerts Section -->
+        <section id="section-alerts" class="admin-section">
+            <div class="glass-panel">
+                <h3 class="panel-heading"><i class="fa-solid fa-bell"></i> SYSTEM ALERTS</h3>
+                <div id="alerts-container">
+                    <!-- Populated by admin.js -->
+                </div>
+            </div>
+        </section>
+
+        <!-- 7. System Controls Section -->
+        <section id="section-system" class="admin-section">
+            <div class="overview-grid">
+                <!-- Maintenance Mode -->
+                <div class="glass-panel" style="margin-bottom:0; display:flex; flex-direction:column; justify-content:space-between;">
+                    <h3 class="panel-heading"><i class="fa-solid fa-power-off"></i> Maintenance Mode</h3>
+                    <p style="color:#a0aec0; font-size:0.9rem; margin-top:0;">Locks user portal. Display "Under Maintenance" immediately.</p>
+                    <button id="btn-toggle-maintenance" class="cyber-btn primary-btn" style="width:100%;">ENABLE MAINTENANCE</button>
+                </div>
+
+                <!-- Force Logout -->
+                <div class="glass-panel" style="margin-bottom:0; display:flex; flex-direction:column; justify-content:space-between;">
+                    <h3 class="panel-heading" style="color:var(--neon-orange); border-color:rgba(255,204,0,0.2);"><i class="fa-solid fa-right-from-bracket"></i> Force Logout</h3>
+                    <p style="color:#a0aec0; font-size:0.9rem; margin-top:0;">Instantly terminate all active user sessions globally.</p>
+                    <button id="btn-force-logout" class="cyber-btn" style="border-color:var(--neon-orange); color:var(--neon-orange); width:100%;">LOGOUT ALL USERS</button>
+                </div>
+
+                <!-- Clear System Data -->
+                <div class="glass-panel" style="margin-bottom:0; display:flex; flex-direction:column; justify-content:space-between;">
+                    <h3 class="panel-heading" style="color:var(--neon-red); border-color:rgba(255,77,77,0.2);"><i class="fa-solid fa-skull"></i> Reset System</h3>
+                    <p style="color:#a0aec0; font-size:0.9rem; margin-top:0;">Wipe all user accounts, logs, and analytics data.</p>
+                    <button id="btn-reset-system" class="cyber-btn danger-btn" style="width:100%;">FACTORY RESET</button>
+                </div>
+            </div>
+
+            <div class="glass-panel" style="margin-top:20px;">
+                <h3 class="panel-heading"><i class="fa-solid fa-bullhorn"></i> Global Broadcast Alert</h3>
+                <div style="display:flex; gap:10px;">
+                    <input type="text" id="global-alert-msg" placeholder="Enter emergency broadcast message..." style="flex:1; padding:10px; background:rgba(0,0,0,0.5); border:1px solid var(--neon-cyan); color:#fff; border-radius:4px; font-family:var(--font-sub);">
+                    <button id="btn-send-alert" class="cyber-btn success-btn"><i class="fa-solid fa-paper-plane"></i> SEND NOW</button>
+                </div>
+            </div>
+
+            <div class="glass-panel">
+                <h3 class="panel-heading"><i class="fa-solid fa-ban"></i> Blocked Targets Registry</h3>
+                <p style="color:#a0aec0; font-size:0.9rem; margin-top:0;">Specify domains that users are forbidden to scan.</p>
+                <div style="display:flex; gap:10px; margin-bottom:20px;">
+                    <input type="text" id="block-domain-input" placeholder="e.g. facebook.com" style="flex:1; padding:10px; background:rgba(0,0,0,0.5); border:1px solid var(--neon-cyan); color:#fff; border-radius:4px; font-family:monospace;">
+                    <button id="btn-block-domain" class="cyber-btn primary-btn"><i class="fa-solid fa-plus"></i> ADD TO DENYLIST</button>
+                </div>
+                <ul id="blocked-domains-list" style="list-style:none; padding:0; margin:0;">
+                    <!-- Populated by admin.js -->
+                </ul>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Notification Toast Container -->
+    <div id="toast-container"></div>
+
+    <script src="../static/js/admin.js"></script>
+</body>
+</html>
